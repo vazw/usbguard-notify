@@ -5,7 +5,7 @@ print_log() {
 }
 
 [ -f "$HOME/.cache/usb.log" ] || touch "$HOME/.cache/usb.log" &&
-  echo "# DEVICE_NAME: EVENT: TARGET: FOUND_DEVICE:APPLYRULE USB_ID"
+  echo "# DEVICE_NAME: EVENT: TARGET: FOUND_DEVICE:APPLYRULE USB_ID" >> "$HOME/.cache/usb.log"
 
 reset_() {
   FOUND_DEVICE=0
@@ -75,7 +75,7 @@ usbguard watch | while read -r usb_data; do
         DEVICE_SERIAL=$(echo "$usb_data" | grep -oP 'serial "\K[^"]+')
         if [ "$TARGET" == "block" ]; then
           print_log "DEVICE_NAME:$DEVICE_NAME EVENT:$EVENT TARGET:$TARGET  $FOUND_DEVICE:$APPLY $USB_ID"
-          ask_for_permit "$USB_ID" "$DEVICE_ID" "$DEVICE_SERIAL" "$DEVICE_NAME" "$DEVICE_HASH"
+          ask_for_permit "$USB_ID" "$DEVICE_ID" "$DEVICE_SERIAL" "$DEVICE_NAME" "$DEVICE_HASH" &
         elif [ "$TARGET" == "allow" ]; then
           print_log "DEVICE_NAME:$DEVICE_NAME EVENT:$EVENT TARGET:$TARGET $FOUND_DEVICE:$APPLY $USB_ID"
           notify-send "USB Guard" "Allowed device connected: $DEVICE_NAME"
