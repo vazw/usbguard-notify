@@ -1,10 +1,24 @@
 #!/usr/bin/bash
 
-[ -f "$HOME/.cache/usb.log" ] || touch "$HOME/.cache/usb.log"
-
 print_log() {
   echo "$(date +%s) $1" >> "$HOME/.cache/usb.log"
 }
+
+[ -f "$HOME/.cache/usb.log" ] || touch "$HOME/.cache/usb.log" &&
+  echo "# DEVICE_NAME: EVENT: TARGET: FOUND_DEVICE:APPLYRULE USB_ID"
+
+reset_() {
+  FOUND_DEVICE=0
+  USB_ID=0
+  DEVICE_NAME=""
+  DEVICE_ID=""
+  DEVICE_HASH=""
+  DEVICE_SERIAL=""
+  APPLY=0
+  EVENT=""
+  TARGET=""
+}
+reset_ 
 
 # ask_for_permit $USB_ID $DEVICE_ID $DEVICE_SERIAL $DEVICE_NAME $DEVICE_HASH
 ask_for_permit() {
@@ -27,18 +41,7 @@ case $ret_val in
 esac
 }
 
-FOUND_DEVICE=0
-USB_ID=0
-DEVICE_NAME=""
-DEVICE_ID=""
-DEVICE_HASH=""
-DEVICE_SERIAL=""
-APPLY=0
-EVENT=""
-TARGET=""
-
-usbguard watch | while read -r usb_data
-do
+usbguard watch | while read -r usb_data; do
   case "$usb_data" in
     \[device\]*)
       if echo "$usb_data" | grep "PresenceChanged" > /dev/null; then
@@ -55,12 +58,7 @@ do
       if [ $FOUND_DEVICE -gt 0 ]; then
         EVENT=$(echo "$usb_data" | awk --field-separator='=' '{print $2}')
         if [ "$EVENT" == "Remove" ]; then
-          FOUND_DEVICE=0
-          APPLY=0
-          USB_ID=0
-          DEVICE_NAME=""
-          TARGET=""
-          EVENT=""
+          reset_
         fi
       fi
       ;;
@@ -76,18 +74,13 @@ do
         DEVICE_HASH=$(echo "$usb_data" | grep -oP ' hash "\K[^"]+')
         DEVICE_SERIAL=$(echo "$usb_data" | grep -oP 'serial "\K[^"]+')
         if [ "$TARGET" == "block" ]; then
-          print_log "DEVICE_NAME:$DEVICE_NAME TARGET:$TARGET EVENT:$EVENT $FOUND_DEVICE:$APPLY $USB_ID"
+          print_log "DEVICE_NAME:$DEVICE_NAME EVENT:$EVENT TARGET:$TARGET  $FOUND_DEVICE:$APPLY $USB_ID"
           ask_for_permit "$USB_ID" "$DEVICE_ID" "$DEVICE_SERIAL" "$DEVICE_NAME" "$DEVICE_HASH"
         elif [ "$TARGET" == "allow" ]; then
-          print_log "DEVICE_NAME:$DEVICE_NAME TARGET:$TARGET EVENT:$EVENT $FOUND_DEVICE:$APPLY $USB_ID"
+          print_log "DEVICE_NAME:$DEVICE_NAME EVENT:$EVENT TARGET:$TARGET $FOUND_DEVICE:$APPLY $USB_ID"
           notify-send "USB Guard" "Allowed device connected: $DEVICE_NAME"
         fi
-        FOUND_DEVICE=0
-        APPLY=0
-        USB_ID=0
-        DEVICE_NAME=""
-        TARGET=""
-        EVENT=""
+        reset_
       fi
       ;;
     *)
